@@ -50,8 +50,6 @@ def categories(category):
 def product(_id):
     filtered = list(filter(lambda x: x["_id"] == _id, mock_database))
     if len(filtered) == 0:
-            # not_found = (int(404), "Not Found")
-            # return json.dumps(not_found)
             return abort(404, "Not found")
     else:
             return json.dumps(filtered)
@@ -60,8 +58,6 @@ def product(_id):
 def product_search(search):
     filtered = list(filter(lambda x: search.lower() in x["title"].lower(), mock_database))
     if len(filtered) == 0:
-            # not_found = (int(404), "Not Found")
-            # return json.dumps(not_found)
             return abort(404, "Not found")
     else:
             return json.dumps(filtered)
@@ -74,6 +70,28 @@ def unique_categories():
             categories.append(product["category"])
     return json.dumps(categories)
 
+@app.get("/api/total")
+def total():
+    total = 0
+    for product in mock_database:
+        total += product["price"]
+    return json.dumps(total)
+
+@app.get("/api/cheaper/<price>")
+def cheaper(price):
+    cheap = []
+    for product in mock_database:
+        if product["price"] <= float(price):
+            cheap.append(product)
+    return json.dumps(cheap)
+
+@app.get("/api/cheapest")
+def cheapest_product():
+    cheapest = mock_database[0]
+    for product in mock_database:
+        if product["price"] < cheapest["price"]:
+            cheapest = product
+    return json.dumps(cheapest)
 # ###############################################
 # api -> json
 # ###############################################
