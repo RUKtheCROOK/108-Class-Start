@@ -57,10 +57,7 @@ def product(_id):
 @app.get("/api/product/search/<search>")
 def product_search(search):
     filtered = list(filter(lambda x: search.lower() in x["title"].lower(), mock_database))
-    if len(filtered) == 0:
-            return abort(404, "Not found")
-    else:
-            return json.dumps(filtered)
+    return json.dumps(filtered)
 
 @app.get("/api/unique_categories")
 def unique_categories():
