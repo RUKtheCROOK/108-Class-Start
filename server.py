@@ -1,6 +1,8 @@
 # import the package
-from flask import Flask, abort
+from flask import Flask, abort, request
 from data import me, mock_database
+from config import db
+from bson import ObjectId
 import json
 
 app = Flask(__name__)
@@ -17,6 +19,10 @@ def about():
 def contactme():
     return "MyEmailAddress@gmail.com"
 
+def fix_id(obj):
+    obj["_id"] = str(obj["_id"])
+    return obj
+
 @app.get("/api/products")
 def products():
     # string = mock_database
@@ -28,11 +34,24 @@ def products():
     # carrots = string[5]["title"],string[5]["category"],string[5]["price"]
     # celery = string[6]["title"],string[6]["category"],string[6]["price"]
     # return f'{apples,oranges,bananas,pears,grapes,carrots,celery}'
-    return json.dumps(mock_database)
+    cursor = db.products.find({})
+    product_list = []
+    for product in cursor:
+        fix_id(product)
+        product_list.append(product)
+    return json.dumps(product_list)
+
+@app.post("/api/products")
+def products_post():
+    data = request.get_json()
+    db.products.insert_one(data)
+    fix_id(data)
+
+    return json.dumps(data)
 
 @app.get("/api/products/count")
 def products_count():
-    length = len(mock_database)
+    length = db.products.count_documents({})
     return json.dumps(length)
 
 @app.get("/api/categories/<category>")
@@ -43,29 +62,45 @@ def categories(category):
     #     if product["category"] == category:
     #         results.append(product)
     # return json.dumps(results)
-    filtered = list(filter(lambda x: x["category"] == category, mock_database))
-    return json.dumps(filtered)
+    cursor = db.products.find({"category": category})
+    product_list = []
+    for product in cursor:
+        fix_id(product)
+        product_list.append(product)
+    # filtered = list(filter(lambda x: x["category"] == category, mock_database))
+    return json.dumps(product_list)
 
-@app.get("/api/product/<_id>")
-def product(_id):
-    filtered = list(filter(lambda x: x["_id"] == _id, mock_database))
-    if len(filtered) == 0:
+@app.get("/api/product/<id>")
+def product(id):
+    # filtered = list(filter(lambda x: x["_id"] == _id, mock_database))
+    _id = ObjectId(id)
+    product = db.products.find_one({"_id": _id})
+
+    if product is None:
             return abort(404, "Not found")
     else:
-            return json.dumps(filtered)
+        fix_id(product)
+        return json.dumps(product)
 
 @app.get("/api/product/search/<search>")
 def product_search(search):
-    filtered = list(filter(lambda x: search.lower() in x["title"].lower(), mock_database))
-    return json.dumps(filtered)
+    cursor = db.products.find({"title":{"$regex" : search, "$options" : "i"}})
+    product_list = []
+    for product in cursor:
+        fix_id(product)
+        product_list.append(product)
+    return json.dumps(product_list)
+    # filtered = list(filter(lambda x: search.lower() in x["title"].lower(), mock_database))
+    # return json.dumps(filtered)
 
 @app.get("/api/unique_categories")
 def unique_categories():
-    categories = []
-    for product in mock_database:
-        if product["category"] not in categories:
-            categories.append(product["category"])
-    return json.dumps(categories)
+    # categories = []
+    # for product in mock_database:
+    #     if product["category"] not in categories:
+    #         categories.append(product["category"])
+    cursor = db.products.distinct("category")
+    return json.dumps(cursor)
 
 @app.get("/api/total")
 def total():

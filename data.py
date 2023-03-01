@@ -62,5 +62,3 @@ mock_database = [
     "_id": "7",
   }
 ]
-
-print(mock_database)
