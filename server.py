@@ -4,8 +4,10 @@ from data import me, mock_database
 from config import db
 from bson import ObjectId
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 @app.get("/")
 def home():
@@ -105,25 +107,40 @@ def unique_categories():
 @app.get("/api/total")
 def total():
     total = 0
-    for product in mock_database:
+    cursor = db.products.find({})
+    for product in cursor:
         total += product["price"]
     return json.dumps(total)
+    # for product in mock_database:
+    #     total += product["price"]
+    # return json.dumps(total)
 
 @app.get("/api/cheaper/<price>")
 def cheaper(price):
     cheap = []
-    for product in mock_database:
-        if product["price"] <= float(price):
-            cheap.append(product)
+    cursor = db.products.find({"price": {"$lte": float(price)}})
+    for product in cursor:
+        fix_id(product)
+        cheap.append(product)
     return json.dumps(cheap)
+    # for product in mock_database:
+    #     if product["price"] <= float(price):
+    #         cheap.append(product)
+    # return json.dumps(cheap)
 
 @app.get("/api/cheapest")
 def cheapest_product():
-    cheapest = mock_database[0]
-    for product in mock_database:
-        if product["price"] < cheapest["price"]:
-            cheapest = product
-    return json.dumps(cheapest)
+    cursor = db.products.find({}).sort("price", 1).limit(1)
+    product_list = []
+    for product in cursor:
+        fix_id(product)
+        product_list.append(product)
+    return json.dumps(product_list)
+    # cheapest = mock_database[0]
+    # for product in mock_database:
+    #     if product["price"] < cheapest["price"]:
+    #         cheapest = product
+    # return json.dumps(cheapest)
 # ###############################################
 # api -> json
 # ###############################################
